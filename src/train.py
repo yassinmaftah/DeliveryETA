@@ -1,9 +1,10 @@
 # src/train.py
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split,RandomizedSearchCV
 from src.preprocessing import build_preprocessor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score,root_mean_squared_error
+from sklearn.ensemble import RandomForestRegressor
 
 
 def load_processed_data(path):
@@ -28,3 +29,30 @@ def train_and_evaluate(model, X_train, y_train, X_test, y_test, model_name):
     }
     
     return metrics, model 
+
+
+def tune_random_forest(X_train, y_train, n_iter=20, cv=5, random_state=42):
+    param = {
+        'n_estimators': [100, 200, 300, 400, 500],
+        'max_depth': [5, 10, 15, 20, None],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['sqrt', 'log2', None],
+    }
+    
+    rf = RandomForestRegressor(random_state=random_state)
+    
+    search = RandomizedSearchCV(
+        estimator=rf,
+        param_distributions=param,
+        n_iter=n_iter,
+        cv=cv,
+        scoring='neg_root_mean_squared_error',
+        random_state=random_state,
+        n_jobs=-1,
+        verbose=1,
+    )
+    
+    search.fit(X_train, y_train)
+    return search
+
